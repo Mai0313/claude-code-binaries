@@ -45,26 +45,48 @@ jobs:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # - name: Install New Version
-      #   env:
-      #     http_proxy: ${{ secrets.HTTP_PROXY }}
-      #     https_proxy: ${{ secrets.HTTPS_PROXY }}
-      #   run: |
-      #     ./scripts/install_all.sh
-
-      # - name: Update Assets
-      #   uses: akkuman/gitea-release-action@v1
-      #   with:
-      #     tag_name: ...
-      #     body: |
-      #       # Update Claude Code Binary
-      #       ## $VERSION
-      #     files: |-
-      #       ./binaries/*/*
-
-      - name: Generate Changelogs and Upload Assets
-        run: |
-          npm config set @benny:registry=https://gitea.mediatek.inc/api/packages/benny-collective/npm/
-          npx @benny/changelogitea@14.3.1 --assets ./scripts/*
+      - name: Get Version
+        id: version
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          http_proxy: ${{ secrets.HTTP_PROXY }}
+          https_proxy: ${{ secrets.HTTPS_PROXY }}
+        run: |
+          VERSION=$(./scripts/install_all.sh get_version)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Retrieved version: $VERSION"
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if git tag --list | grep -q "^${VERSION}$"; then
+            echo "Tag $VERSION already exists"
+            echo "tag_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Tag $VERSION does not exist"
+            echo "tag_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install New Version
+        if: steps.check_tag.outputs.tag_exists == 'false'
+        env:
+          http_proxy: ${{ secrets.HTTP_PROXY }}
+          https_proxy: ${{ secrets.HTTPS_PROXY }}
+        run: |
+          ./scripts/install_all.sh
+
+      - name: Update Assets
+        if: steps.check_tag.outputs.tag_exists == 'false'
+        uses: akkuman/gitea-release-action@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          body: |
+            # Update Claude Code Binary
+            ## ${{ steps.version.outputs.version }}
+          files: |-
+            ./binaries/*/*
+
+      - name: Skip Update (Tag Already Exists)
+        if: steps.check_tag.outputs.tag_exists == 'true'
+        run: |
+          echo "Skipping update - Tag ${{ steps.version.outputs.version }} already exists"

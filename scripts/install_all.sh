@@ -2,20 +2,40 @@
 
 set -e
 
-# Parse command line arguments
+GCS_BUCKET="https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases"
+BASE_DOWNLOAD_DIR="$(pwd)/binaries"
+
+# Function to get version
+get_version() {
+    local target="${1:-latest}"
+    
+    # Validate target if provided
+    if [[ ! "$target" =~ ^(stable|latest|[0-9]+\.[0-9]+\.[0-9]+(-[^[:space:]]+)?)$ ]]; then
+        echo "Error: Invalid target '$target'. Use stable|latest|VERSION" >&2
+        return 1
+    fi
+    
+    # Get version from GCS bucket
+    curl -fsSLk "$GCS_BUCKET/$target"
+}
+
+# Check if this script is called for version only
+if [ "$1" = "get_version" ]; then
+    get_version "$2"
+    exit $?
+fi
+
+# Parse command line arguments for install mode
 TARGET="${1:-latest}"  # Default to latest if not provided
 
 # Validate target if provided
 if [[ ! "$TARGET" =~ ^(stable|latest|[0-9]+\.[0-9]+\.[0-9]+(-[^[:space:]]+)?)$ ]]; then
-    echo "Usage: $0 [stable|latest|VERSION]" >&2
+    echo "Usage: $0 [stable|latest|VERSION] or $0 get_version [stable|latest|VERSION]" >&2
     exit 1
 fi
 
-GCS_BUCKET="https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases"
-BASE_DOWNLOAD_DIR="$(pwd)/binaries"
-
 # Get version
-version=$(curl -fsSLk "$GCS_BUCKET/$TARGET")
+version=$(get_version "$TARGET")
 echo "Downloading version: $version"
 
 DOWNLOAD_DIR="$BASE_DOWNLOAD_DIR/$version"
