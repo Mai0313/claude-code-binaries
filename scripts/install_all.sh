@@ -1,7 +1,7 @@
 #!/bin/bash
 
-export http_proxy=http://mtkdrone01.mediatek.inc:23984
-export https_proxy=http://mtkdrone01.mediatek.inc:23984
+export http_proxy=http://mtktma.mediatek.inc:23984
+export https_proxy=http://mtktma.mediatek.inc:23984
 
 set -e
 
