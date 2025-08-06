@@ -52,14 +52,19 @@ jobs:
       #   run: |
       #     ./scripts/install_all.sh
 
-      - uses: akkuman/gitea-release-action@v1
-        with:
-          files: |-
-            scripts/**
+      # - name: Update Assets
+      #   uses: akkuman/gitea-release-action@v1
+      #   with:
+      #     tag_name: ...
+      #     body: |
+      #       # Update Claude Code Binary
+      #       ## $VERSION
+      #     files: |-
+      #       ./binaries/*/*
 
-      # - name: Generate Changelogs and Upload Assets
-      #   run: |
-      #     npm config set @benny:registry=https://gitea.mediatek.inc/api/packages/benny-collective/npm/
-      #     npx @benny/changelogitea@14.3.1 --assets ./binaries/*/*
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate Changelogs and Upload Assets
+        run: |
+          npm config set @benny:registry=https://gitea.mediatek.inc/api/packages/benny-collective/npm/
+          npx @benny/changelogitea@14.3.1 --assets ./scripts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
