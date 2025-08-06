@@ -1,8 +1,5 @@
 #!/bin/bash
 
-export http_proxy=http://mtktma.mediatek.inc:23984
-export https_proxy=http://mtktma.mediatek.inc:23984
-
 set -e
 
 # Parse command line arguments

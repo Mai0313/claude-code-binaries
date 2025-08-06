@@ -7,8 +7,8 @@ on:
   # # manually trigger a workflow_dispatch event
   # workflow_dispatch:
   push:
-    branches:
-      - master
+    tags:
+      - "*"
 
 permissions: write-all
 
@@ -43,12 +43,15 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install New Version
+        env:
+          http_proxy: ${{ secrets.HTTP_PROXY }}
+          https_proxy: ${{ secrets.HTTPS_PROXY }}
         run: |
           ./scripts/install_all.sh
 
-      # - name: Generate Changelogs and Upload Assets
-      #   run: |
-      #     npm config set @benny:registry=https://gitea.mediatek.inc/api/packages/benny-collective/npm/
-      #     npx @benny/changelogitea@14.3.1 --assets *.vsix
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate Changelogs and Upload Assets
+        run: |
+          npm config set @benny:registry=https://gitea.mediatek.inc/api/packages/benny-collective/npm/
+          npx @benny/changelogitea@14.3.1 --assets ./binaries/*/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
