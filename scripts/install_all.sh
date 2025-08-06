@@ -85,7 +85,7 @@ download_platform() {
     local platform=$1
     local manifest_json=$2
     local HAS_JQ=$3
-    
+
     echo "Processing platform: $platform"
 
     # Extract checksum for current platform

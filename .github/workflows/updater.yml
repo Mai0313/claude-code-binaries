@@ -80,9 +80,10 @@ jobs:
         uses: akkuman/gitea-release-action@v1
         with:
           tag_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
           body: |
             # Update Claude Code Binary
-            ## ${{ steps.version.outputs.version }}
+            ## v${{ steps.version.outputs.version }}
           files: |-
             ./binaries/*/*
 
