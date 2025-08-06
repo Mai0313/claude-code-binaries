@@ -1,0 +1,54 @@
+name: Auto Updater
+
+on:
+  # # every day at midnight
+  # schedule:
+  #   - cron: "0 0 * * *"
+  # # manually trigger a workflow_dispatch event
+  # workflow_dispatch:
+  push:
+    branches:
+      - master
+
+permissions: write-all
+
+jobs:
+  auto-update:
+    runs-on: ubuntu-latest
+    container: catthehacker/ubuntu:act-20.04  # Uncomment it if you use it on Gitea
+
+    steps:
+      - name: Disable SSL Verify
+        run: git config --global http.sslVerify false
+
+      - name: Setup MTK Certification
+        uses: https://gitea.mediatek.inc/actions/mtk-cert-action@v1.2.0
+
+      - name: Setup SSH Key
+        uses: shimataro/ssh-key-action@v2.7.0
+        with:
+          key: ${{ secrets.SSH_KEY }}
+          name: id_rsa
+          known_hosts: unnecessary
+          config: |
+            Host *
+              StrictHostKeyChecking no
+              UserKnownHostsFile=/dev/null
+          if_key_exists: replace
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install New Version
+        run: |
+          ./scripts/install_all.sh
+
+      # - name: Generate Changelogs and Upload Assets
+      #   run: |
+      #     npm config set @benny:registry=https://gitea.mediatek.inc/api/packages/benny-collective/npm/
+      #     npx @benny/changelogitea@14.3.1 --assets *.vsix
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
