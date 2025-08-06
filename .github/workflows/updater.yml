@@ -44,6 +44,7 @@ jobs:
 
       - name: Install New Version
         run: |
+          curl --help
           ./scripts/install_all.sh
 
       # - name: Generate Changelogs and Upload Assets
