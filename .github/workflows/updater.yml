@@ -45,13 +45,6 @@ jobs:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup go
-        id: setup-go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          check-latest: true
-
       - name: Get Version
         id: version
         env:
@@ -74,6 +67,13 @@ jobs:
             echo "tag_exists=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Setup go
+        if: steps.check_tag.outputs.tag_exists == 'false'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
       - name: Install New Version
         if: steps.check_tag.outputs.tag_exists == 'false'
         env:
@@ -84,6 +84,7 @@ jobs:
           ./scripts/install_binaries.sh
 
       - name: Build Package
+        if: steps.check_tag.outputs.tag_exists == 'false'
         run: |
           make build-all
 
