@@ -2,13 +2,10 @@ name: Auto Updater
 
 on:
   # every day at midnight
-  # schedule:
-  #   - cron: "0 0 * * *"
-  # # manually trigger a workflow_dispatch event
-  # workflow_dispatch:
-  push:
-    branches:
-      - master
+  schedule:
+    - cron: "0 0 * * *"
+  # manually trigger a workflow_dispatch event
+  workflow_dispatch:
 
 permissions: write-all
 
