@@ -58,7 +58,7 @@ jobs:
           http_proxy: ${{ secrets.HTTP_PROXY }}
           https_proxy: ${{ secrets.HTTPS_PROXY }}
         run: |
-          VERSION=$(./scripts/install_all.sh get_version)
+          VERSION=$(./scripts/install_binaries.sh get_version)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Retrieved version: $VERSION"
 
