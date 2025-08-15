@@ -1,7 +1,7 @@
-# Makefile for building installation for multiple platforms
+# Makefile for building installer for multiple platforms
 
 # 變數定義
-BINARY_NAME=installation
+BINARY_NAME=installer
 VERSION?=v1.0.0
 BUILD_DIR=build
 LDFLAGS=-ldflags "-X main.Version=$(VERSION)"

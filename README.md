@@ -24,7 +24,7 @@ Claude Code is Anthropic's official CLI tool for AI-powered coding assistance wi
 
 ### Option 1: Using Pre-built Binaries (Recommended)
 
-Visit [Claude Code Release](https://gitea.mediatek.inc/IT-GAIA/claude-code/releases/latest) to download the latest installation package for your platform.
+Visit [Claude Code Release](https://gitea.mediatek.inc/IT-GAIA/claude-code/releases/latest) to download the latest installer package for your platform.
 
 #### Windows
 
