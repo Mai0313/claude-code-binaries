@@ -11,7 +11,6 @@ GOCMD=go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
-GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
 # 預設目標
@@ -35,7 +34,7 @@ $(BUILD_DIR):
 
 # 構建所有平台
 .PHONY: build-all
-build-all: $(BUILD_DIR) build-darwin build-linux build-windows
+build-all: build-darwin build-linux build-windows
 
 # macOS 構建
 .PHONY: build-darwin
@@ -70,8 +69,8 @@ build-windows-amd64: $(BUILD_DIR)
 	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe .
 
 # 本地構建（當前平台）
-.PHONY: build
-build: $(BUILD_DIR)
+.PHONY: local
+local: $(BUILD_DIR)
 	$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) .
 
 # 測試
@@ -126,14 +125,14 @@ install:
 
 # 快速構建和測試
 .PHONY: quick
-quick: fmt vet build test
+quick: fmt vet local test
 
 # 幫助信息
 .PHONY: help
 help:
 	@echo "可用的 make 目標:"
 	@echo "  all          - 清理、安裝依賴並構建所有平台"
-	@echo "  build        - 構建當前平台的二進制文件"
+	@echo "  local        - 構建當前平台的二進制文件"
 	@echo "  build-all    - 構建所有平台的二進制文件"
 	@echo "  build-darwin - 構建 macOS 平台 (amd64, arm64)"
 	@echo "  build-linux  - 構建 Linux 平台 (amd64, arm64)"
