@@ -15,7 +15,6 @@ get_version() {
     fi
 
     # Get version from GCS bucket
-    echo "$GCS_BUCKET/$target"
     curl -fsSLk "$GCS_BUCKET/$target"
 }
 
