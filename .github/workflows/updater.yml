@@ -1,7 +1,6 @@
 name: Claude Code Binaries Updater
 
 on:
-  push:
   # every 2 hours
   schedule:
     - cron: "0 */2 * * *"
