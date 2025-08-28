@@ -1,6 +1,7 @@
-name: Auto Updater
+name: Claude Code Binaries Updater
 
 on:
+  push:
   # every 2 hours
   schedule:
     - cron: "0 */2 * * *"
@@ -9,22 +10,20 @@ on:
 
 permissions: write-all
 
-env:
-  NODE_TLS_REJECT_UNAUTHORIZED: 0
-  http_proxy: ${{ secrets.HTTP_PROXY }}
-  https_proxy: ${{ secrets.HTTPS_PROXY }}
-
 jobs:
-  auto-update:
+  auto-update-gitea:
     runs-on: ubuntu-latest
+    if: ${{ contains(github.server_url, 'gitea') }}
     container: catthehacker/ubuntu:act-20.04  # Uncomment it if you use it on Gitea
+
+    env:
+      NODE_TLS_REJECT_UNAUTHORIZED: 0
+      http_proxy: ${{ secrets.HTTP_PROXY }}
+      https_proxy: ${{ secrets.HTTPS_PROXY }}
 
     steps:
       - name: Disable SSL Verify
         run: git config --global http.sslVerify false
-
-      - name: Setup MTK Certification
-        uses: https://gitea.mediatek.inc/actions/mtk-cert-action@v1.2.0
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,15 +31,15 @@ jobs:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get Version
+      - name: Get Claude Code Version
         id: version
         run: |
           VERSION=$(./scripts/install_binaries.sh get_version)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Retrieved version: $VERSION"
 
-      - name: Check if tag exists
-        id: check_tag
+      - name: Check if Version Exists
+        id: check_version
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           if git tag --list | grep -q "^${VERSION}$"; then
@@ -52,13 +51,13 @@ jobs:
           fi
 
       - name: Install New Version
-        if: steps.check_tag.outputs.tag_exists == 'false'
+        if: ${{ steps.check_version.outputs.tag_exists == 'false' }}
         run: |
           chmod +x ./scripts/install_binaries.sh
           ./scripts/install_binaries.sh
 
       - name: Update Assets
-        if: steps.check_tag.outputs.tag_exists == 'false'
+        if: ${{ steps.check_version.outputs.tag_exists == 'false' }}
         uses: akkuman/gitea-release-action@v1
         with:
           tag_name: ${{ steps.version.outputs.version }}
@@ -70,7 +69,55 @@ jobs:
             ./binaries/*/*
             ./build/*
 
-      - name: Skip Update (Tag Already Exists)
-        if: steps.check_tag.outputs.tag_exists == 'true'
+  auto-update-github:
+    runs-on: ubuntu-latest
+    if: ${{ contains(github.server_url, 'github') }}
+    # container: catthehacker/ubuntu:act-20.04  # Uncomment it if you use it on Gitea
+
+    steps:
+      - name: Disable SSL Verify
+        run: git config --global http.sslVerify false
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get Claude Code Version
+        id: version
         run: |
-          echo "Skipping update - Tag ${{ steps.version.outputs.version }} already exists"
+          VERSION=$(./scripts/install_binaries.sh get_version)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Retrieved version: $VERSION"
+
+      - name: Check if Version Exists
+        id: check_version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if git tag --list | grep -q "^${VERSION}$"; then
+            echo "Tag $VERSION already exists"
+            echo "tag_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Tag $VERSION does not exist"
+            echo "tag_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install New Version
+        if: ${{ steps.check_version.outputs.tag_exists == 'false' }}
+        run: |
+          chmod +x ./scripts/install_binaries.sh
+          ./scripts/install_binaries.sh
+
+      - name: Upload Release Assets
+        if: ${{ steps.check_version.outputs.tag_exists == 'false' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
+          body: |
+            # Update Claude Code Binary
+            ## v${{ steps.version.outputs.version }}
+          files: |-
+            ./binaries/*/*
+            ./build/*

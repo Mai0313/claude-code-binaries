@@ -8,13 +8,13 @@ BASE_DOWNLOAD_DIR="$(pwd)/binaries"
 # Function to get version
 get_version() {
     local target="${1:-latest}"
-    
+
     # Validate target if provided
     if [[ ! "$target" =~ ^(stable|latest|[0-9]+\.[0-9]+\.[0-9]+(-[^[:space:]]+)?)$ ]]; then
         echo "Error: Invalid target '$target'. Use stable|latest|VERSION" >&2
         return 1
     fi
-    
+
     # Get version from GCS bucket
     curl -fsSLk "$GCS_BUCKET/$target"
 }
@@ -40,18 +40,6 @@ echo "Downloading version: $version"
 
 DOWNLOAD_DIR="$BASE_DOWNLOAD_DIR/$version"
 mkdir -p "$DOWNLOAD_DIR"
-
-# Check for required dependencies
-if ! command -v curl >/dev/null 2>&1; then
-    echo "curl is required but not installed" >&2
-    exit 1
-fi
-
-# Check if jq is available (optional)
-HAS_JQ=false
-if command -v jq >/dev/null 2>&1; then
-    HAS_JQ=true
-fi
 
 # Simple JSON parser for extracting checksum when jq is not available
 get_checksum_from_manifest() {
@@ -84,12 +72,11 @@ manifest_json=$(curl -fsSLk "$GCS_BUCKET/$version/manifest.json")
 download_platform() {
     local platform=$1
     local manifest_json=$2
-    local HAS_JQ=$3
 
     echo "Processing platform: $platform"
 
-    # Extract checksum for current platform
-    if [ "$HAS_JQ" = true ]; then
+    # Check if jq is available and extract checksum accordingly
+    if command -v jq >/dev/null 2>&1; then
         checksum=$(echo "$manifest_json" | jq -r ".platforms[\"$platform\"].checksum // empty")
     else
         checksum=$(get_checksum_from_manifest "$manifest_json" "$platform")
@@ -150,7 +137,7 @@ download_platform() {
 # Download binaries for all platforms in parallel
 echo "Starting parallel downloads for all platforms..."
 for platform in "${!platforms[@]}"; do
-    download_platform "$platform" "$manifest_json" "$HAS_JQ" &
+    download_platform "$platform" "$manifest_json" &
 done
 
 # Wait for all background processes to finish
