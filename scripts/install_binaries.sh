@@ -3,7 +3,6 @@
 set -e
 
 GCS_BUCKET="https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases"
-BASE_DOWNLOAD_DIR="$(pwd)/binaries"
 
 # Function to get version
 get_version() {
@@ -16,6 +15,7 @@ get_version() {
     fi
 
     # Get version from GCS bucket
+    echo "$GCS_BUCKET/$target"
     curl -fsSLk "$GCS_BUCKET/$target"
 }
 
@@ -26,19 +26,12 @@ if [ "$1" = "get_version" ]; then
 fi
 
 # Parse command line arguments for install mode
-TARGET="${1:-latest}"  # Default to latest if not provided
-
-# Validate target if provided
-if [[ ! "$TARGET" =~ ^(stable|latest|[0-9]+\.[0-9]+\.[0-9]+(-[^[:space:]]+)?)$ ]]; then
-    echo "Usage: $0 [stable|latest|VERSION] or $0 get_version [stable|latest|VERSION]" >&2
-    exit 1
-fi
-
-# Get version
+# Defaults to latest if not provided
+TARGET="${1:-latest}"
 version=$(get_version "$TARGET")
-echo "Downloading version: $version"
+echo "Selected version: $version"
 
-DOWNLOAD_DIR="$BASE_DOWNLOAD_DIR/$version"
+DOWNLOAD_DIR="$(pwd)/binaries/$BASE_DOWNLOAD_DIR/$version"
 mkdir -p "$DOWNLOAD_DIR"
 
 # Simple JSON parser for extracting checksum when jq is not available
