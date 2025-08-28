@@ -19,7 +19,7 @@ jobs:
 
       - name: Check Github server url
         run: |
-          ${{ github.server_url }}
+          echo "${{ github.server_url }}"
 
       - name: Run if server url contains `gitea`
         if: contains(github.server_url, 'gitea')
