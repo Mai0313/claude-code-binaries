@@ -22,11 +22,11 @@ jobs:
           echo "${{ github.server_url }}"
 
       - name: Run if server url contains `gitea`
-        if: contains(github.server_url, 'gitea')
+        if: ${{ contains(github.server_url, 'gitea') }}
         run: |
           echo "This is a Gitea server"
 
       - name: Run if server url contains `github`
-        if: contains(github.server_url, 'github')
+        if: ${{ contains(github.server_url, 'github') }}
         run: |
           echo "This is a GitHub server"
