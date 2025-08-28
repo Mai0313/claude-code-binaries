@@ -24,6 +24,23 @@ if [ "$1" = "get_version" ]; then
     exit $?
 fi
 
+# Simple JSON parser for extracting checksum when jq is not available
+get_checksum_from_manifest() {
+    local json="$1"
+    local platform="$2"
+
+    # Normalize JSON to single line and extract checksum
+    json=$(echo "$json" | tr -d '\n\r\t' | sed 's/ \+/ /g')
+
+    # Extract checksum for platform using bash regex
+    if [[ $json =~ \"$platform\"[^}]*\"checksum\"[[:space:]]*:[[:space:]]*\"([a-f0-9]{64})\" ]]; then
+        echo "${BASH_REMATCH[1]}"
+        return 0
+    fi
+
+    return 1
+}
+
 # Parse command line arguments for install mode
 # Defaults to latest if not provided
 TARGET="${1:-latest}"
@@ -32,20 +49,6 @@ echo "Selected version: $version"
 
 DOWNLOAD_DIR="$(pwd)/binaries/$BASE_DOWNLOAD_DIR/$version"
 mkdir -p "$DOWNLOAD_DIR"
-
-# Simple JSON parser for extracting checksum when jq is not available
-get_checksum_from_manifest() {
-    local json="$1"
-    local platform="$2"
-    # Normalize JSON to single line and extract checksum
-    json=$(echo "$json" | tr -d '\n\r\t' | sed 's/ \+/ /g')
-    # Extract checksum for platform using bash regex
-    if [[ $json =~ \"$platform\"[^}]*\"checksum\"[[:space:]]*:[[:space:]]*\"([a-f0-9]{64})\" ]]; then
-        echo "${BASH_REMATCH[1]}"
-        return 0
-    fi
-    return 1
-}
 
 # Define all supported platforms with their file extensions
 declare -A platforms=(
@@ -56,8 +59,6 @@ declare -A platforms=(
     ["win32-x64"]="claude.exe"
 )
 
-# Download manifest once
-echo "Fetching manifest..."
 manifest_json=$(curl -fsSLk "$GCS_BUCKET/$version/manifest.json")
 
 # Function to download and verify a platform binary
@@ -80,9 +81,6 @@ download_platform() {
         return 1
     fi
 
-    # Get the correct filename and extension for this platform
-    filename="${platforms[$platform]}"
-
     # Set binary path with appropriate extension
     if [[ "$platform" == win32-* ]]; then
         binary_path="$DOWNLOAD_DIR/claude-$version-$platform.exe"
@@ -93,14 +91,11 @@ download_platform() {
     # Download binary
     echo "Downloading $platform binary..."
 
-    if ! curl -fsSLk -o "$binary_path" "$GCS_BUCKET/$version/$platform/$filename"; then
+    if ! curl -fsSLk -o "$binary_path" "$GCS_BUCKET/$version/$platform/${platforms[$platform]}"; then
         echo "Warning: Download failed for $platform, skipping..." >&2
         rm -f "$binary_path"
         return 1
     fi
-
-    # Verify checksum
-    echo "Verifying checksum for $platform..."
 
     # Pick the right checksum tool
     if command -v sha256sum >/dev/null 2>&1; then
@@ -127,17 +122,13 @@ download_platform() {
 }
 
 # Download binaries for all platforms in parallel
-echo "Starting parallel downloads for all platforms..."
+echo "Setting up Claude Code..."
 for platform in "${!platforms[@]}"; do
     download_platform "$platform" "$manifest_json" &
 done
 
 # Wait for all background processes to finish
 wait
-echo "All downloads completed!"
 
 echo ""
 echo "Download completed!"
-echo "Files saved to: $DOWNLOAD_DIR"
-echo ""
-ls -la "$DOWNLOAD_DIR" | grep claude || echo "No claude files found"
