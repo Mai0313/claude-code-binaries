@@ -1,9 +1,9 @@
 name: Auto Updater
 
 on:
-  # every day at midnight
+  # every 6 hours
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 */6 * * *"
   # manually trigger a workflow_dispatch event
   workflow_dispatch:
 
