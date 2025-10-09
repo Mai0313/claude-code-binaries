@@ -55,15 +55,21 @@ jobs:
           chmod +x ./scripts/install_binaries.sh
           ./scripts/install_binaries.sh
 
+      - name: Download Changelog
+        if: ${{ steps.check_version.outputs.tag_exists == 'false' }}
+        id: changelog
+        run: |
+          curl -L https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/CHANGELOG.md -o CHANGELOG.md
+          CONTENT=$(cat CHANGELOG.md | awk '/^## /{if (c++) exit} c')
+          echo "content=$CONTENT" >> $GITHUB_OUTPUT
+
       - name: Update Assets
         if: ${{ steps.check_version.outputs.tag_exists == 'false' }}
         uses: akkuman/gitea-release-action@v1
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: ${{ steps.version.outputs.version }}
-          body: |
-            # Update Claude Code Binary
-            ## v${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.content }}
           files: |-
             ./binaries/*/*
             ./build/*
@@ -108,15 +114,21 @@ jobs:
           chmod +x ./scripts/install_binaries.sh
           ./scripts/install_binaries.sh
 
+      - name: Download Changelog
+        if: ${{ steps.check_version.outputs.tag_exists == 'false' }}
+        id: changelog
+        run: |
+          curl -L https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/CHANGELOG.md -o CHANGELOG.md
+          CONTENT=$(cat CHANGELOG.md | awk '/^## /{if (c++) exit} c')
+          echo "content=$CONTENT" >> $GITHUB_OUTPUT
+
       - name: Upload Release Assets
         if: ${{ steps.check_version.outputs.tag_exists == 'false' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: ${{ steps.version.outputs.version }}
-          body: |
-            # Update Claude Code Binary
-            ## v${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.content }}
           files: |-
             ./binaries/*/*
             ./build/*
