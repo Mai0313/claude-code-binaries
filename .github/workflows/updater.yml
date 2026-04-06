@@ -5,7 +5,6 @@ on:
   # every 2 hours
   schedule:
     - cron: "0 */2 * * *"
-  # manually trigger a workflow_dispatch event
   workflow_dispatch:
 
 permissions: write-all
