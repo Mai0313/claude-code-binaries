@@ -1,158 +1,114 @@
-# Claude Code CLI 使用指南
+# Claude Code Binaries
 
 [English](README.md) | [繁體中文](README.zh-TW.md) | 简体中文
 
-## 简介
+[Claude Code](https://github.com/anthropics/claude-code) 原生可执行文件在 GitHub Releases 上的镜像，供能访问 GitHub、却无法访问 Anthropic 下载服务器（`downloads.claude.ai`）的环境使用。
 
-Claude Code 是 Anthropic 官方的 CLI 工具，提供 AI 编程助手和交互式开发支持。
+- 文件与 Anthropic 发布的完全相同，未经修改。每个文件在发布到这里之前，都会先比对 Anthropic manifest 中的 SHA-256。
+- 上游发布新版本后，一小时内会出现在这里。
+- 这不是 Anthropic 的项目。如果你能访问 `claude.ai`，请改用[官方安装方式](https://code.claude.com/docs/en/setup)。
 
----
+镜像只解决下载的问题。Claude Code 运行时仍需要连接 Anthropic API，或你配置的其他服务，例如 Amazon Bedrock、Google Vertex AI 或 LLM gateway。
 
-## 获取 API 密钥
+## 下载
 
-**重要**：使用 Claude Code 前，请先完成以下步骤：
+打开[最新 release](https://github.com/Mai0313/claude-code-binaries/releases/latest)，选择对应平台的文件：
 
-1. 访问 [MediaTek MLOp Gateway](https://mlop-azure-gateway.mediatek.inc/auth/login) 登录
-2. 获取您的 GAISF API 密钥
-3. 妥善保存密钥以供后续使用
+| 平台                        | 文件                                |
+| --------------------------- | ----------------------------------- |
+| macOS，Apple Silicon        | `claude-<version>-darwin-arm64`     |
+| macOS，Intel                | `claude-<version>-darwin-x64`       |
+| Linux x64                   | `claude-<version>-linux-x64`        |
+| Linux ARM64                 | `claude-<version>-linux-arm64`      |
+| Linux x64，musl（Alpine）   | `claude-<version>-linux-x64-musl`   |
+| Linux ARM64，musl（Alpine） | `claude-<version>-linux-arm64-musl` |
+| Windows x64                 | `claude-<version>-win32-x64.exe`    |
+| Windows ARM64               | `claude-<version>-win32-arm64.exe`  |
 
-**注意**：由于 SSL 证书配置问题，本说明文档中的网址使用 HTTP 而非 HTTPS，以确保在不同网络环境下的兼容性。
-
----
+每个可执行文件另有一个较小的 `.zst` 压缩文件，用 `zstd -d` 解压即可。`manifest.json`、`manifest.json.sig` 和 `claude-code.asc` 用于[验证下载的文件](#%E9%AA%8C%E8%AF%81%E4%B8%8B%E8%BD%BD%E7%9A%84%E6%96%87%E4%BB%B6)。较旧的 release 可能只有 macOS、glibc Linux 和 Windows x64 的可执行文件，没有 `.zst` 文件，也没有验证用的文件。
 
 ## 安装
 
-### 方法一：使用预编译可执行文件（推荐）
+### macOS 和 Linux
 
-请访问 [Claude Code Release](https://gitea.mediatek.inc/IT-GAIA/claude-code/releases/latest) 下载最新版本的安装包。
-
-#### Windows 用户
-
-⚠️ **重要警告**：Claude Code 对 Windows 的支持有限。如果您无法使用 WSL（Windows 子系统 Linux），我们强烈建议使用 macOS 或 Linux 以获得最佳体验。
-
-1. 下载 Windows 版本的 `.exe` 可执行文件
-2. 为可执行文件创建目录：
-   ```cmd
-   mkdir %USERPROFILE%\.local\bin
-   ```
-3. 将下载的可执行文件移动到目录并重命名：
-   ```cmd
-   move claude-code-windows-x64.exe %USERPROFILE%\.local\bin\claude.exe
-   ```
-4. 将目录添加到您的 PATH 环境变量：
-   - 打开系统属性 → 环境变量
-   - 将 `%USERPROFILE%\.local\bin` 添加到您的 PATH
-   - 或使用 PowerShell：
-   ```powershell
-   $env:PATH += ";$env:USERPROFILE\.local\bin"
-   [Environment]::SetEnvironmentVariable("PATH", $env:PATH, "User")
-   ```
-
-#### macOS/Linux 用户
-1. 下载适合您平台的可执行文件
-2. 将可执行文件移动到本地 bin 目录：
+把 `linux-x64` 换成你的平台：
 
 ```bash
-# 设置执行权限
-chmod +x claude-code-*
-
-# 移动到 ~/.local/bin（如目录不存在则创建）
+chmod +x claude-*-linux-x64
 mkdir -p ~/.local/bin
-mv claude-code-* ~/.local/bin/claude
-
-# 确保 ~/.local/bin 在您的 PATH 中
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
+mv claude-*-linux-x64 ~/.local/bin/claude
 ```
 
-### 方法二：使用 npm（适合开发者）
-
-使用 npm 安装 Claude Code（需要 Node.js 环境和编程基础）：
+如果之后 shell 找不到 `claude`，在 `~/.bashrc` 或 `~/.zshrc` 中把 `~/.local/bin` 加入 `PATH`：
 
 ```bash
-npm install -g @anthropic-ai/claude-code
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
----
+在 Alpine 等 musl 发行版上，还需要安装运行时依赖，并在下方的配置文件中把 `USE_BUILTIN_RIPGREP` 设为 `0`：
 
-## 平台支持
+```bash
+apk add libgcc libstdc++ ripgrep
+```
 
-Claude Code 支持以下平台：
-- macOS
-- Linux 
-- Windows WSL（Windows 子系统 Linux）
+### Windows
 
-### Windows 用户
+在 PowerShell 中运行，把 `win32-x64` 换成你的平台：
 
-对于希望在 WSL 之外使用 Claude Code 的 Windows 用户，需要安装 Git Bash：
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.local\bin"
+Move-Item claude-*-win32-x64.exe "$env:USERPROFILE\.local\bin\claude.exe"
+$userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+[Environment]::SetEnvironmentVariable("PATH", "$userPath;$env:USERPROFILE\.local\bin", "User")
+```
 
-1. 从以下地址下载并安装 Git for Windows：https://git-scm.com/downloads/win
-2. 设置环境变量指向 Git Bash：
-   ```powershell
-   $env:CLAUDE_CODE_GIT_BASH_PATH="C:\Program Files\Git\bin\bash.exe"
-   ```
+打开一个新的终端，`PATH` 的修改才会生效。安装了 [Git for Windows](https://git-scm.com/downloads/win) 时，Claude Code 会使用 Git Bash，否则使用 PowerShell。
 
-更多详细设置信息，请参考[官方安装文档](https://docs.anthropic.com/zh-CN/docs/claude-code/setup)。
+### 关闭自动更新
 
----
-
-## 配置文件设置
-
-在 `~/.claude/settings.json` 创建配置文件：
+Claude Code 会到 `downloads.claude.ai` 检查更新，在需要这个镜像的环境中必然失败。在 `~/.claude/settings.json`（Windows 为 `%USERPROFILE%\.claude\settings.json`）中关闭：
 
 ```json
 {
-  "cleanupPeriodDays": 30,
-  "enableAllProjectMcpServers": true,
-  "includeCoAuthoredBy": true,
-  "permissions": {
-    "allow": [
-      "Bash(npm run lint)",
-      "Bash(npm run format)",
-      "Bash(npm run test:*)",
-      "Bash(npm run build)",
-      "Read(~/.zshrc)",
-      "Bash(git diff:*)"
-    ],
-    "deny": [
-      "Bash(curl:*)"
-    ],
-    "defaultMode": "acceptEdits",
-    "disableBypassPermissionsMode": "disable"
-  },
   "env": {
-    "DISABLE_TELEMETRY": "1",
-    "ANTHROPIC_MODEL": "anthropic.claude-sonnet-4-20250514-v1:0",
-    "ANTHROPIC_SMALL_FAST_MODEL": "anthropic.claude-sonnet-4-20250514-v1:0",
-    "ANTHROPIC_BEDROCK_BASE_URL": "http://mlop-azure-gateway.mediatek.inc",
-    "CLAUDE_CODE_USE_BEDROCK": "1",
-    "CLAUDE_CODE_SKIP_BEDROCK_AUTH": "1",
-    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    "ANTHROPIC_CUSTOM_HEADERS": "api-key: <<您的 GAISF API 密钥>>"
+    "DISABLE_AUTOUPDATER": "1"
   }
 }
 ```
 
-**配置说明：**
-- 请将 `<<您的 GAISF API 密钥>>` 替换为您的实际 API 密钥
-- `ANTHROPIC_BEDROCK_BASE_URL` 配置为使用 HTTP 而非 HTTPS，这是由于 SSL 证书配置需求
-- **重要提醒**：在某些情况下，Claude Code 可能无法读取 `~/.claude/settings.json` 配置文件。如果您遇到配置问题，请参考 [官方设置文档](https://docs.anthropic.com/zh-CN/docs/claude-code/settings#%E8%AE%BE%E7%BD%AE%E6%96%87%E4%BB%B6) 了解其他配置文件位置和故障排除步骤
+需要更新时，下载较新的 release 并替换原来的文件。`claude --version` 会显示当前安装的版本。
 
----
+## 验证下载的文件
 
-## 使用方法
-
-配置完成后，启动 Claude Code：
+Anthropic 会签署 `manifest.json`，而 manifest 列出了每个可执行文件的 SHA-256。先检查签名：
 
 ```bash
-claude
+gpg --show-keys claude-code.asc
+gpg --import claude-code.asc
+gpg --verify manifest.json.sig manifest.json
 ```
 
----
+`gpg --show-keys` 输出的 fingerprint 必须是 `31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE`，与 [Anthropic 官方文档](https://code.claude.com/docs/en/setup#binary-integrity-and-code-signing)公布的一致：从这个镜像下载的公钥本身无法证明任何事。`gpg --verify` 应该显示 `Good signature from "Anthropic Claude Code Release Signing <security@anthropic.com>"`。
 
-## 其他资源
+接着比对可执行文件的 checksum 与 manifest 中的值：
 
-- [官方文档](https://docs.anthropic.com/zh-CN/docs/claude-code)
-- [设置文档](https://docs.anthropic.com/zh-CN/docs/claude-code/settings)
-- [子代理功能](https://docs.anthropic.com/zh-CN/docs/claude-code/sub-agents) - 探索专业任务的代理功能
-- [MCP 集成](https://docs.anthropic.com/zh-CN/docs/claude-code/mcp) - 了解模型上下文协议支持
+```bash
+sha256sum claude-*-linux-x64 # macOS: shasum -a 256
+jq -r '.platforms["linux-x64"].checksum' manifest.json
+```
+
+在 Windows 上，`(Get-FileHash claude.exe -Algorithm SHA256).Hash.ToLower()` 会输出 checksum。`.zst` 文件要先解压，解压后的文件会符合 `manifest.json` 中的 checksum。
+
+## 镜像的工作方式
+
+`.github/workflows/updater.yml` 每小时运行一次。它向 `scripts/fetch.sh` 获取上游的最新版本，如果还没有 release 使用这个 tag，就下载并验证该版本的所有文件，发布为 release，并以上游 changelog 中该版本的段落作为说明。
+
+`scripts/fetch.sh` 是唯一与 Claude Code 相关的文件。要用这个 repository 镜像其他项目，改写它的三个命令和这份 README 即可：
+
+```bash
+./scripts/fetch.sh version                # 上游最新版本
+./scripts/fetch.sh download VERSION dist  # VERSION 的所有文件，已验证
+./scripts/fetch.sh notes VERSION          # VERSION 的 release notes
+```
+
+Claude Code 版权归 Anthropic PBC 所有，使用时须遵守 [Anthropic 的条款](https://github.com/anthropics/claude-code/blob/main/LICENSE.md)。
