@@ -1,7 +1,17 @@
-name: Claude Code Binaries Updater
+name: Mirror Updater
+
+# Publishes the newest upstream version as a release. Everything specific to
+# the upstream lives in scripts/fetch.sh; a pull request touching it runs the
+# download without publishing.
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - scripts/**
+      - .github/workflows/updater.yml
   schedule:
     - cron: "0 * * * *"
   workflow_dispatch:
@@ -9,8 +19,8 @@ on:
 permissions: write-all
 
 jobs:
-  auto-update-binaries:
-    name: Auto Update Binaries
+  mirror:
+    name: Mirror Latest Version
     runs-on: ubuntu-latest
 
     steps:
@@ -20,49 +30,37 @@ jobs:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get Claude Code Version
+      - name: Get Upstream Version
         id: version
         run: |
-          VERSION=$(./scripts/install_binaries.sh get_version)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Retrieved version: $VERSION"
+          VERSION=$(./scripts/fetch.sh version)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Check if Version Exists
-        id: check_version
+      - name: Check Existing Release
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        # Published releases only: `gh release view` also finds a draft left
+        # by a cancelled run, which would block that version for good.
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          if git tag --list | grep -q "^${VERSION}$"; then
-            echo "Tag $VERSION already exists"
-            echo "tag_exists=true" >> $GITHUB_OUTPUT
+          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$VERSION" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Tag $VERSION does not exist"
-            echo "tag_exists=false" >> $GITHUB_OUTPUT
+            echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Install New Version
-        if: ${{ steps.check_version.outputs.tag_exists == 'false' }}
+      - name: Download
+        if: ${{ steps.check.outputs.exists == 'false' || github.event_name == 'pull_request' }}
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          chmod +x ./scripts/install_binaries.sh
-          ./scripts/install_binaries.sh
+          ./scripts/fetch.sh download "$VERSION" dist
+          ./scripts/fetch.sh notes "$VERSION" > notes.md
 
-      - name: Download Changelog
-        if: ${{ steps.check_version.outputs.tag_exists == 'false' }}
-        id: changelog
-        run: |
-          curl -L https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/CHANGELOG.md -o CHANGELOG.md
-          {
-            echo 'content<<EOF'
-            awk '/^## /{if (c++) exit} c' CHANGELOG.md
-            echo 'EOF'
-          } >> $GITHUB_OUTPUT
-
-      - name: Upload Release Assets
-        if: ${{ steps.check_version.outputs.tag_exists == 'false' }}
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: ${{ steps.version.outputs.version }}
-          body: ${{ steps.changelog.outputs.content }}
-          files: |-
-            ./binaries/*/*
-            ./build/*
+      - name: Publish Release
+        if: ${{ steps.check.outputs.exists == 'false' && github.event_name != 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: gh release create "$VERSION" dist/* --title "$VERSION" --notes-file notes.md
