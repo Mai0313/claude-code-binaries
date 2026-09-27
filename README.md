@@ -1,156 +1,114 @@
-# Claude Code CLI Usage Guide
+# Claude Code Binaries
 
 English | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md)
 
-## Overview
+A mirror of the [Claude Code](https://github.com/anthropics/claude-code) native binaries on GitHub Releases, for machines that can reach GitHub but not Anthropic's download server (`downloads.claude.ai`).
 
-Claude Code is Anthropic's official CLI tool for AI-powered coding assistance with interactive development support.
+- The files are the ones Anthropic publishes, unmodified. Each one is checked against the SHA-256 in Anthropic's manifest before it is published here.
+- A new upstream version appears here within an hour.
+- This is not an Anthropic project. If you can reach `claude.ai`, use the [official installer](https://code.claude.com/docs/en/setup) instead.
 
----
+The mirror only solves the download. Claude Code still needs to reach the Anthropic API, or whichever provider you configure it for, such as Amazon Bedrock, Google Vertex AI or an LLM gateway.
 
-## Obtaining API Key
+## Download
 
-**Important**: Before using Claude Code, complete these steps:
+Open the [latest release](https://github.com/Mai0313/claude-code-binaries/releases/latest) and pick the file for your platform:
 
-1. Visit [MediaTek MLOp Gateway](https://mlop-azure-gateway.mediatek.inc/auth/login) to log in
-2. Obtain your GAISF API key
-3. Keep the key secure for subsequent use
+| Platform                   | File                                |
+| -------------------------- | ----------------------------------- |
+| macOS, Apple Silicon       | `claude-<version>-darwin-arm64`     |
+| macOS, Intel               | `claude-<version>-darwin-x64`       |
+| Linux x64                  | `claude-<version>-linux-x64`        |
+| Linux ARM64                | `claude-<version>-linux-arm64`      |
+| Linux x64, musl (Alpine)   | `claude-<version>-linux-x64-musl`   |
+| Linux ARM64, musl (Alpine) | `claude-<version>-linux-arm64-musl` |
+| Windows x64                | `claude-<version>-win32-x64.exe`    |
+| Windows ARM64              | `claude-<version>-win32-arm64.exe`  |
 
-**Note**: Due to SSL certificate configuration, the URLs in this documentation use HTTP instead of HTTPS for compatibility across different network environments.
+Every binary also comes as a smaller `.zst` file; unpack it with `zstd -d`. `manifest.json`, `manifest.json.sig` and `claude-code.asc` are there to [verify a download](#verify-a-download). Older releases may carry only the macOS, glibc Linux and Windows x64 binaries, without the `.zst` files or the files to verify them.
 
----
+## Install
 
-## Installation
+### macOS and Linux
 
-### Option 1: Using Pre-built Binaries (Recommended)
-
-Visit [Claude Code Release](https://gitea.mediatek.inc/IT-GAIA/claude-code/releases/latest) to download the latest installer package for your platform.
-
-#### Windows
-
-⚠️ **Important Warning**: Claude Code has limited support for Windows. If you cannot use WSL (Windows Subsystem for Linux), we strongly recommend using macOS or Linux instead for the best experience.
-
-1. Download the Windows `.exe` binary file
-2. Create a directory for the binary:
-   ```cmd
-   mkdir %USERPROFILE%\.local\bin
-   ```
-3. Move the downloaded binary to the directory and rename it:
-   ```cmd
-   move claude-code-windows-x64.exe %USERPROFILE%\.local\bin\claude.exe
-   ```
-4. Add the directory to your PATH environment variable:
-   - Open System Properties → Environment Variables
-   - Add `%USERPROFILE%\.local\bin` to your PATH
-   - Or use PowerShell:
-   ```powershell
-   $env:PATH += ";$env:USERPROFILE\.local\bin"
-   [Environment]::SetEnvironmentVariable("PATH", $env:PATH, "User")
-   ```
-
-#### macOS/Linux
-1. Download the appropriate binary for your platform
-2. Move the binary to your local bin directory:
+Replace `linux-x64` with your platform:
 
 ```bash
-# Make it executable
-chmod +x claude-code-*
-
-# Move to ~/.local/bin (create directory if it doesn't exist)
+chmod +x claude-*-linux-x64
 mkdir -p ~/.local/bin
-mv claude-code-* ~/.local/bin/claude
-
-# Ensure ~/.local/bin is in your PATH
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
+mv claude-*-linux-x64 ~/.local/bin/claude
 ```
 
-### Option 2: Using npm (For developers)
-
-Install Claude Code using npm (requires Node.js and programming experience):
+If the shell cannot find `claude` afterwards, add `~/.local/bin` to your `PATH` in `~/.bashrc` or `~/.zshrc`:
 
 ```bash
-npm install -g @anthropic-ai/claude-code
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
----
+On Alpine and other musl distributions, also install the runtime dependencies and set `USE_BUILTIN_RIPGREP` to `0` in the settings file below:
 
-## Platform Support
+```bash
+apk add libgcc libstdc++ ripgrep
+```
 
-Claude Code supports the following platforms:
-- macOS
-- Linux 
-- Windows WSL (Windows Subsystem for Linux)
+### Windows
 
-### Windows Users
+In PowerShell, replace `win32-x64` with your platform:
 
-For Windows users who want to use Claude Code outside of WSL, you'll need to install Git Bash:
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.local\bin"
+Move-Item claude-*-win32-x64.exe "$env:USERPROFILE\.local\bin\claude.exe"
+$userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+[Environment]::SetEnvironmentVariable("PATH", "$userPath;$env:USERPROFILE\.local\bin", "User")
+```
 
-1. Download and install Git for Windows from: https://git-scm.com/downloads/win
-2. Set the environment variable to point to Git Bash:
-   ```powershell
-   $env:CLAUDE_CODE_GIT_BASH_PATH="C:\Program Files\Git\bin\bash.exe"
-   ```
+Open a new terminal for the `PATH` change to apply. Claude Code uses Git Bash when [Git for Windows](https://git-scm.com/downloads/win) is installed and PowerShell otherwise.
 
-For more detailed setup information, see the [official setup documentation](https://docs.anthropic.com/en/docs/claude-code/setup).
+### Turn off auto-update
 
----
-
-## Configuration
-
-Create a configuration file at `~/.claude/settings.json`:
+Claude Code checks `downloads.claude.ai` for updates, which fails wherever this mirror is needed. Turn the check off in `~/.claude/settings.json` (`%USERPROFILE%\.claude\settings.json` on Windows):
 
 ```json
 {
-  "cleanupPeriodDays": 30,
-  "enableAllProjectMcpServers": true,
-  "includeCoAuthoredBy": true,
-  "permissions": {
-    "allow": [
-      "Bash(npm run lint)",
-      "Bash(npm run format)",
-      "Bash(npm run test:*)",
-      "Bash(npm run build)",
-      "Read(~/.zshrc)",
-      "Bash(git diff:*)"
-    ],
-    "deny": [
-      "Bash(curl:*)"
-    ],
-    "defaultMode": "acceptEdits",
-    "disableBypassPermissionsMode": "disable"
-  },
   "env": {
-    "DISABLE_TELEMETRY": "1",
-    "ANTHROPIC_MODEL": "anthropic.claude-sonnet-4-20250514-v1:0",
-    "ANTHROPIC_SMALL_FAST_MODEL": "anthropic.claude-sonnet-4-20250514-v1:0",
-    "ANTHROPIC_BEDROCK_BASE_URL": "http://mlop-azure-gateway.mediatek.inc",
-    "CLAUDE_CODE_USE_BEDROCK": "1",
-    "CLAUDE_CODE_SKIP_BEDROCK_AUTH": "1",
-    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    "ANTHROPIC_CUSTOM_HEADERS": "api-key: <<Your GAISF API KEY>>"
+    "DISABLE_AUTOUPDATER": "1"
   }
 }
 ```
 
-**Configuration Notes:**
-- Replace `<<Your GAISF API KEY>>` with your actual API key
-- The `ANTHROPIC_BEDROCK_BASE_URL` is configured to use HTTP instead of HTTPS due to SSL certificate configuration requirements
-- **Important**: In some cases, Claude Code may not be able to read the `~/.claude/settings.json` configuration file. If you encounter configuration issues, please refer to the [official settings documentation](https://docs.anthropic.com/en/docs/claude-code/settings#settings-files) for alternative configuration file locations and troubleshooting steps
+To update, download a newer release and replace the file. `claude --version` shows the installed version.
 
----
+## Verify a download
 
-## Usage
-
-After configuration, launch Claude Code:
+Anthropic signs `manifest.json`, and the manifest lists the SHA-256 of every binary. Check the signature first:
 
 ```bash
-claude
+gpg --show-keys claude-code.asc
+gpg --import claude-code.asc
+gpg --verify manifest.json.sig manifest.json
 ```
 
-## Additional Resources
+The fingerprint `gpg --show-keys` prints must be `31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE`, as published in [Anthropic's documentation](https://code.claude.com/docs/en/setup#binary-integrity-and-code-signing): a key downloaded from this mirror proves nothing on its own. `gpg --verify` should report `Good signature from "Anthropic Claude Code Release Signing <security@anthropic.com>"`.
 
-- [Official Documentation](https://docs.anthropic.com/en/docs/claude-code)
-- [Settings Documentation](https://docs.anthropic.com/en/docs/claude-code/settings)
-- [Sub-Agents](https://docs.anthropic.com/en/docs/claude-code/sub-agents) - Explore the agent feature for specialized tasks
-- [MCP Integration](https://docs.anthropic.com/en/docs/claude-code/mcp) - Learn about Model Context Protocol support
+Then compare the checksum of the binary with the one in the manifest:
+
+```bash
+sha256sum claude-*-linux-x64 # macOS: shasum -a 256
+jq -r '.platforms["linux-x64"].checksum' manifest.json
+```
+
+On Windows, `(Get-FileHash claude.exe -Algorithm SHA256).Hash.ToLower()` prints the checksum. For a `.zst` file, unpack it first; the result matches the checksum in `manifest.json`.
+
+## How the mirror works
+
+`.github/workflows/updater.yml` runs every hour. It asks `scripts/fetch.sh` for the newest upstream version, and when no release carries that tag yet, it downloads and verifies every file of that version and publishes them as a release, with that version's section of the upstream changelog as the notes.
+
+`scripts/fetch.sh` is the only file that knows about Claude Code. To mirror another project with this repository, rewrite its three commands and this README:
+
+```bash
+./scripts/fetch.sh version                # newest upstream version
+./scripts/fetch.sh download VERSION dist  # every file of VERSION, verified
+./scripts/fetch.sh notes VERSION          # release notes of VERSION
+```
+
+Claude Code is © Anthropic PBC, and its use is subject to [Anthropic's terms](https://github.com/anthropics/claude-code/blob/main/LICENSE.md).
