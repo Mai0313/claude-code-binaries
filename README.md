@@ -99,16 +99,8 @@ jq -r '.platforms["linux-x64"].checksum' manifest.json
 
 On Windows, `(Get-FileHash claude.exe -Algorithm SHA256).Hash.ToLower()` prints the checksum. For a `.zst` file, unpack it first; the result matches the checksum in `manifest.json`.
 
-## How the mirror works
+## Development
 
-`.github/workflows/updater.yml` runs every hour. It asks `scripts/fetch.sh` for the newest upstream version, and when no release carries that tag yet, it downloads and verifies every file of that version and publishes them as a release, with that version's section of the upstream changelog as the notes.
-
-`scripts/fetch.sh` is the only file that knows about Claude Code. To mirror another project with this repository, rewrite its three commands and this README:
-
-```bash
-./scripts/fetch.sh version                # newest upstream version
-./scripts/fetch.sh download VERSION dist  # every file of VERSION, verified
-./scripts/fetch.sh notes VERSION          # release notes of VERSION
-```
+How the mirror publishes a release, and how to reuse it for another project, is in [CONTRIBUTING.md](./.github/CONTRIBUTING.md).
 
 Claude Code is © Anthropic PBC, and its use is subject to [Anthropic's terms](https://github.com/anthropics/claude-code/blob/main/LICENSE.md).

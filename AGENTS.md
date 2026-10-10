@@ -4,7 +4,7 @@ This file provides guidance to coding agents (Claude Code, Codex and others) whe
 
 ## What this repository is
 
-A mirror of Claude Code's native binaries on GitHub Releases, for machines that can reach GitHub but not `downloads.claude.ai`. There is no product code: the releases are the product, and the repository holds one script, the workflows that publish with it, and three READMEs.
+A mirror of Claude Code's native binaries on GitHub Releases, for machines that can reach GitHub but not `downloads.claude.ai`. There is no product code: the releases are the product, and the repository holds one script, the workflows that publish with it, three READMEs and a contributing guide.
 
 The repository is also meant to become a template for mirroring other projects' binaries. That is why everything specific to Claude Code lives in `scripts/fetch.sh` and the READMEs, and nowhere else.
 

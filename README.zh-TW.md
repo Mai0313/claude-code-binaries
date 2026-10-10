@@ -99,16 +99,8 @@ jq -r '.platforms["linux-x64"].checksum' manifest.json
 
 在 Windows 上，`(Get-FileHash claude.exe -Algorithm SHA256).Hash.ToLower()` 會印出 checksum。`.zst` 檔要先解壓，解壓後的檔案會符合 `manifest.json` 裡的 checksum。
 
-## 鏡像的運作方式
+## 開發
 
-`.github/workflows/updater.yml` 每小時執行一次。它向 `scripts/fetch.sh` 取得上游的最新版本，如果還沒有 release 使用這個 tag，就下載並驗證該版本的所有檔案，發布成 release，並以上游 changelog 中該版本的段落作為說明。
-
-`scripts/fetch.sh` 是唯一與 Claude Code 相關的檔案。要用這個 repository 鏡像其他專案，改寫它的三個指令與這份 README 即可：
-
-```bash
-./scripts/fetch.sh version                # 上游最新版本
-./scripts/fetch.sh download VERSION dist  # VERSION 的所有檔案，已驗證
-./scripts/fetch.sh notes VERSION          # VERSION 的 release notes
-```
+鏡像如何發布 release，以及如何改用來鏡像其他專案，請見 [CONTRIBUTING.md](./.github/CONTRIBUTING.md)。
 
 Claude Code 版權屬於 Anthropic PBC，使用時須遵守 [Anthropic 的條款](https://github.com/anthropics/claude-code/blob/main/LICENSE.md)。
